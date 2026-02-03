@@ -10,7 +10,7 @@ Per connectar amb el servidor remot es pot fer servir l'script:
 
 ```bash
 # Desde el terminal local
-./proxmocConnect.sh
+./proxmoxConnect.sh
 # Obre una connexió "super" al terminal remot
 ```
 
