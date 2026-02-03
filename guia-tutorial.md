@@ -154,6 +154,59 @@ kill -9 <PID>
 
 ---
 
+## 🌐 Conectar Flutter (Desktop) al Servidor
+
+El puerto 3000 del Proxmox **NO está abierto a internet**. Para conectar Flutter desde tu PC, necesitas un **túnel SSH**.
+
+### Desde Windows (PowerShell)
+
+1. **Abre una terminal nueva** y ejecuta:
+   ```powershell
+   ssh -p 20127 -L 3000:localhost:3000 uxia6@ieticloudpro.ieti.cat -N
+   ```
+   > La terminal se quedará "colgada". **Eso es normal**. No la cierres.
+
+2. **En Flutter**, usa la URL:
+   ```
+   http://127.0.0.1:3000
+   ```
+
+3. **Credenciales de login**:
+   - Email: `admin@example.com`
+   - Password: `password`
+
+### Desde Ubuntu (en clase)
+
+1. **Abre una terminal** y ejecuta:
+   ```bash
+   ssh -p 20127 -L 3000:localhost:3000 uxia6@ieticloudpro.ieti.cat -N &
+   ```
+   > El `&` al final lo deja en segundo plano.
+
+2. **En Flutter**, usa la URL:
+   ```
+   http://127.0.0.1:3000
+   ```
+
+3. **Para cerrar el túnel**:
+   ```bash
+   pkill -f "ssh -p 20127"
+   ```
+
+### Verificar que el túnel funciona
+
+Ejecuta en otra terminal:
+```bash
+# Windows (PowerShell)
+Test-NetConnection -ComputerName localhost -Port 3000
+
+# Ubuntu
+nc -zv localhost 3000
+```
+Debe decir "Succeeded" o "Connection succeeded".
+
+---
+
 ## ✅ Checklist Rápido
 
 - [ ] ¿Puedo conectarme por SSH?
@@ -161,6 +214,7 @@ kill -9 <PID>
 - [ ] ¿El archivo `.env` tiene las credenciales correctas?
 - [ ] ¿He ejecutado `npm install`?
 - [ ] ¿El servidor arranca sin errores?
+- [ ] ¿El túnel SSH está abierto para Flutter?
 
 ---
 
