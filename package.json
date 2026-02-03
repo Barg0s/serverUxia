@@ -1,35 +1,20 @@
 {
-  "name": "serveruxia",
+  "name": "uxia-server",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "NodeJS API Server for UXIA Project",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "seed": "node seed.js"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Barg0s/serverUxia.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/Barg0s/serverUxia/issues"
-  },
-  "homepage": "https://github.com/Barg0s/serverUxia#readme",
   "dependencies": {
-    "bcryptjs": "^3.0.3",
+    "axios": "^1.13.4",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^5.2.1",
+    "express": "^4.19.2",
     "mysql2": "^3.16.2",
-    "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7",
-    "uuid": "^13.0.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.11"
+    "sequelize": "^6.37.3",
+    "sqlite3": "^5.1.7"
   }
 }
