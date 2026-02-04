@@ -42,6 +42,7 @@ erDiagram
         enum role "admin | normal"
         string api_key "Token de sesión"
         boolean validat "¿Teléfono validado?"
+        boolean tos "Términos aceptados"
         datetime createdAt
         datetime updatedAt
     }
@@ -83,6 +84,7 @@ Almacena usuarios del sistema (tanto administradores como usuarios móviles).
 | `role` | ENUM | `admin` (acceso total) o `normal` (usuario móvil) |
 | `api_key` | STRING | Token de sesión activo |
 | `validat` | BOOLEAN | `true` si el usuario ha validado su teléfono |
+| `tos` | BOOLEAN | `true` si ha aceptado términos de servicio |
 
 ### Tabla `AnalysisRequests`
 Registra las solicitudes de análisis de imagen enviadas por usuarios.

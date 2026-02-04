@@ -40,6 +40,11 @@ const User = sequelize.define('User', {
     api_key: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    // Aceptación de términos de servicio
+    tos: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
     }
 });
 
