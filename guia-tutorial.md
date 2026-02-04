@@ -207,6 +207,127 @@ Debe decir "Succeeded" o "Connection succeeded".
 
 ---
 
+## 🧪 Cómo Testear que Funciona
+
+Esta sección te permite **demostrar al profesor** que el servidor funciona correctamente.
+
+### URL Pública del Servidor
+```
+https://uxia6.ieti.site
+```
+
+### Test 1: Comprobar que el servidor responde
+
+**Desde cualquier navegador o terminal, prueba el login:**
+
+```bash
+# Windows (PowerShell)
+Invoke-RestMethod -Uri "https://uxia6.ieti.site/api/admin/usuaris/login" -Method POST -ContentType "application/json" -Body '{"email":"admin@example.com","password":"password"}'
+
+# Linux/Mac (curl)
+curl -X POST https://uxia6.ieti.site/api/admin/usuaris/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"password"}'
+```
+
+**Respuesta esperada:**
+```json
+{
+  "status": "OK",
+  "message": "Usuari autenticat correctament",
+  "data": {
+    "token": "ADMIN1234567890TOKEN"
+  }
+}
+```
+
+✅ Si ves `status: OK`, **el servidor funciona correctamente**.
+
+---
+
+### Test 2: Listar usuarios (requiere autenticación)
+
+Primero obtén el token del Test 1, luego:
+
+```bash
+# Windows (PowerShell) - Todo en un comando
+$response = Invoke-RestMethod -Uri "https://uxia6.ieti.site/api/admin/usuaris/login" -Method POST -ContentType "application/json" -Body '{"email":"admin@example.com","password":"password"}'; $token = $response.data.token; Invoke-RestMethod -Uri "https://uxia6.ieti.site/api/admin/usuaris" -Method GET -Headers @{Authorization="Bearer $token"}
+
+# Linux/Mac (curl)
+TOKEN=$(curl -s -X POST https://uxia6.ieti.site/api/admin/usuaris/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"password"}' | jq -r '.data.token')
+
+curl -X GET https://uxia6.ieti.site/api/admin/usuaris \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Respuesta esperada:**
+```json
+{
+  "status": "OK",
+  "message": "Consulta realitzada correctament",
+  "data": [
+    {
+      "nickname": "admin",
+      "email": "admin@example.com",
+      "telefon": null,
+      "role": "admin"
+    }
+  ]
+}
+```
+
+---
+
+### Test 3: Login incorrecto (verificar seguridad)
+
+```bash
+# Windows (PowerShell)
+Invoke-RestMethod -Uri "https://uxia6.ieti.site/api/admin/usuaris/login" -Method POST -ContentType "application/json" -Body '{"email":"hacker@evil.com","password":"wrong"}'
+```
+
+**Respuesta esperada:**
+```json
+{
+  "status": "ERROR",
+  "message": "Credencials incorrectes"
+}
+```
+
+✅ Si devuelve ERROR con contraseña incorrecta, **la seguridad funciona**.
+
+---
+
+### Test 4: Token inválido (verificar middleware)
+
+```bash
+# Windows (PowerShell)
+Invoke-RestMethod -Uri "https://uxia6.ieti.site/api/admin/usuaris" -Method GET -Headers @{Authorization="Bearer TOKEN_FALSO"}
+```
+
+**Respuesta esperada:**
+```json
+{
+  "status": "ERROR",
+  "message": "Token invàlid"
+}
+```
+
+✅ Si rechaza tokens falsos, **el middleware de autenticación funciona**.
+
+---
+
+### Resumen de Endpoints Funcionando
+
+| Endpoint | Método | Autenticación | Estado |
+|:---|:---|:---|:---|
+| `/api/admin/usuaris/login` | POST | No | ✅ Funciona |
+| `/api/admin/usuaris` | GET | Bearer Token | ✅ Funciona |
+| `/api/analitzar-imatge` | POST | Bearer Token | ✅ Funciona (requiere imagen) |
+
+---
+
 ## ✅ Checklist Rápido
 
 - [ ] ¿Puedo conectarme por SSH?
@@ -215,6 +336,8 @@ Debe decir "Succeeded" o "Connection succeeded".
 - [ ] ¿He ejecutado `npm install`?
 - [ ] ¿El servidor arranca sin errores?
 - [ ] ¿El túnel SSH está abierto para Flutter?
+- [ ] ¿El Test 1 (login) devuelve `status: OK`?
+- [ ] ¿El Test 2 (listar usuarios) funciona con token?
 
 ---
 
