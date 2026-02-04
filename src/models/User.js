@@ -1,35 +1,27 @@
+// Modelo de Usuario (Tabla Users)
+// Define la estructura de datos para usuarios del sistema
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-// Definición del Modelo Usuario (Tabla Users)
+// Definir el modelo con Sequelize
 const User = sequelize.define('User', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    // Nombre de usuario interno (opcional si usamos email para login)
-    username: {
-        type: DataTypes.STRING,
-        allowNull: true,
-    },
-    // Nombre visible del usuario (Nickname)
+    // Nombre de usuario, usado para validación de usuarios móviles
     nickname: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     // Email único, usado para login de administrador
     email: {
         type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
+        unique: true,
+        allowNull: true // Obligatoria para admins en este sprint
     },
-    // Contraseña (Solo obligatoria para admins en este sprint)
+    // Contraseña (solo para admin en este sprint) login
     password: {
         type: DataTypes.STRING,
         allowNull: true
     },
-    // Teléfono para validación de usuarios móviles
+    // Teléfono del usuario
     telefon: {
         type: DataTypes.STRING,
         allowNull: true
@@ -37,7 +29,7 @@ const User = sequelize.define('User', {
     // Rol del usuario: 'admin' o 'normal'
     role: {
         type: DataTypes.ENUM('admin', 'normal'),
-        defaultValue: 'normal'
+        defaultValue: 'normal',
     },
     // Si el usuario ha validado su teléfono
     validat: {
@@ -48,11 +40,6 @@ const User = sequelize.define('User', {
     api_key: {
         type: DataTypes.STRING,
         allowNull: true
-    },
-    // Aceptación de términos de servicio
-    tos: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true
     }
 });
 
