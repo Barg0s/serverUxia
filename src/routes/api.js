@@ -109,6 +109,36 @@ router.post('/admin/usuaris/login', async (req, res) => {
     }
 });
 
+// POST /api/admin/usuaris/logout
+// Cierra sesión eliminando el token de la base de datos
+router.post('/admin/usuaris/logout', authMiddleware, async (req, res) => {
+    try {
+        // El authMiddleware ya validó el token y cargó req.user
+        const user = req.user;
+
+        // Limpiar el token de la base de datos
+        user.api_key = null;
+        await user.save();
+
+        return res.json(createResponse('OK', 'Sessió tancada correctament'));
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json(createResponse('ERROR', 'Error al tancar sessió'));
+    }
+});
+
+// POST /api/admin/usuaris/testtoken
+// Verifica si el token es válido
+router.post('/admin/usuaris/testtoken', authMiddleware, (req, res) => {
+    // Si llegamos aquí, el authMiddleware ya validó el token
+    return res.json(createResponse('OK', 'Token vàlid', {
+        user: {
+            email: req.user.email,
+            role: req.user.role
+        }
+    }));
+});
+
 // GET /api/admin/usuaris
 // Listado de todos los usuarios (Solo para admins)
 router.get('/admin/usuaris', authMiddleware, async (req, res) => {
@@ -150,6 +180,27 @@ router.post('/analitzar-imatge', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json(createResponse('ERROR', 'Error al processar imatge'));
+    }
+});
+
+// POST /api/analitzar-imatge-test
+// Endpoint de prueba que siempre retorna datos mock (SIN autenticación)
+router.post('/analitzar-imatge-test', async (req, res) => {
+    try {
+        // No requiere autenticación - para testing de app móvil
+        const { image } = req.body;
+
+        // Respuesta simulada siempre igual para testing
+        return res.json(createResponse('OK', 'Imatge de test processada', {
+            description: "Aquesta és una descripció de test. La imatge mostra un objecte de prova per validar la funcionalitat de l'aplicació mòbil.",
+            tags: ["test", "prova", "validació", "mock"],
+            processing_time: "0.1s",
+            model_used: "test-model-v1"
+        }));
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json(createResponse('ERROR', 'Error al processar imatge de test'));
     }
 });
 
