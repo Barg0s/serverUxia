@@ -4,10 +4,6 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 // Definir el modelo con Sequelize
-const bcrypt = require('bcrypt');
-const SALT_ROUNDS = 12;
-
-
 const User = sequelize.define('User', {
     // Nombre de usuario, usado para validación de usuarios móviles
     nickname: {
@@ -49,17 +45,6 @@ const User = sequelize.define('User', {
     tos: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
-    }
-});
-User.beforeCreate(async (user) => {
-    if (user.password) {
-        user.password = await bcrypt.hash(user.password, SALT_ROUNDS);
-    }
-});
-
-User.beforeUpdate(async (user) => {
-    if (user.changed('password')) {
-        user.password = await bcrypt.hash(user.password, SALT_ROUNDS);
     }
 });
 
