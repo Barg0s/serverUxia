@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const db = require('./models');
 const apiRoutes = require('./routes/api');
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 12;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,7 +23,7 @@ app.use('/api', apiRoutes);
 db.sequelize.sync({ force: false })
     .then(async () => {
         console.log('Base de Datos sincronizada');
-
+        const hashedPassword = await bcrypt.hash('password', SALT_ROUNDS);
         // Crear un usuario Administrador por defecto si no existe
         const adminExists = await db.User.findOne({ where: { email: 'admin@example.com' } });
         if (!adminExists) {
@@ -29,7 +31,7 @@ db.sequelize.sync({ force: false })
                 username: 'admin',
                 nickname: 'AdminUser',
                 email: 'admin@example.com',
-                password: 'password', // En producción, usar hash (bcrypt)
+                password: hashedPassword, // En producción, usar hash (bcrypt)
                 role: 'admin',
                 api_key: 'ADMIN_SUPER_SECRET_KEY' // Clave inicial para pruebas
             });
