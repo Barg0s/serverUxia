@@ -7,11 +7,6 @@ const authMiddleware = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
 
     // 1. Verificar si existe la cabecera Authorization
-
-    if (clientType === 'mobile') {
-        return next();
-    }
-    
     if (!authHeader) {
         return res.status(401).json(
             createResponse('ERROR', 'Es requereix la capçalera d\'autorització')
