@@ -1,0 +1,5 @@
+{
+    "model": "llama3.2-vision",
+    "prompt": "Diguem hola amic",
+    "stream": false
+}
