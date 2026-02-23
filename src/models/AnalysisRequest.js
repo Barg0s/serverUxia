@@ -9,7 +9,15 @@ const AnalysisRequest = sequelize.define('AnalysisRequest', {
     },
     imageId: {
         type: DataTypes.STRING,
-        allowNull: true // Could be a path or a UUID for the stored image
+        allowNull: true
+    },
+    prompt: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    imageBase64: {
+        type: DataTypes.TEXT('long'),
+        allowNull: true
     },
     timestamp: {
         type: DataTypes.DATE,

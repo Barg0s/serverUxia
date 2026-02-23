@@ -12,7 +12,15 @@ const Response = sequelize.define('Response', {
         allowNull: true
     },
     tags: {
-        type: DataTypes.STRING, // Comma separated tags or JSON string
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    model_used: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    processing_time: {
+        type: DataTypes.STRING,
         allowNull: true
     }
 });

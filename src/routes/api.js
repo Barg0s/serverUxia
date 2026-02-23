@@ -3,7 +3,7 @@ const router = express.Router();
 const { User, AnalysisRequest, Response } = require('../models');
 const { createResponse } = require('../utils/response');
 const { authMiddleware } = require('../middleware/auth');
-const { Op } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 
 // --- Endpoints de Usuario (App Móvil) ---
 
@@ -113,13 +113,9 @@ router.post('/admin/usuaris/login', async (req, res) => {
 // Cierra sesión eliminando el token de la base de datos
 router.post('/admin/usuaris/logout', authMiddleware, async (req, res) => {
     try {
-        // El authMiddleware ya validó el token y cargó req.user
         const user = req.user;
-
-        // Limpiar el token de la base de datos
         user.api_key = null;
         await user.save();
-
         return res.json(createResponse('OK', 'Sessió tancada correctament'));
     } catch (error) {
         console.error(error);
@@ -130,7 +126,6 @@ router.post('/admin/usuaris/logout', authMiddleware, async (req, res) => {
 // POST /api/admin/usuaris/testtoken
 // Verifica si el token es válido
 router.post('/admin/usuaris/testtoken', authMiddleware, (req, res) => {
-    // Si llegamos aquí, el authMiddleware ya validó el token
     return res.json(createResponse('OK', 'Token vàlid', {
         user: {
             email: req.user.email,
@@ -142,7 +137,6 @@ router.post('/admin/usuaris/testtoken', authMiddleware, (req, res) => {
 // GET /api/admin/usuaris
 // Listado de todos los usuarios (Solo para admins)
 router.get('/admin/usuaris', authMiddleware, async (req, res) => {
-    // Verificar rol de administrador
     if (req.user.role !== 'admin') {
         return res.status(403).json(createResponse('ERROR', 'Accés denegat'));
     }
@@ -158,27 +152,109 @@ router.get('/admin/usuaris', authMiddleware, async (req, res) => {
     }
 });
 
-// --- Endpoint de Análisis de Imagen ---
+// --- Endpoint de Análisis de Imagen (Real con Ollama) ---
 
 // POST /api/analitzar-imatge
-// Recibe una imagen y devuelve una descripción (Simulado)
-router.post('/analitzar-imatge', authMiddleware, async (req, res) => {
+// Recibe una imagen en Base64, la envía a Ollama para análisis,
+// guarda petición y respuesta en la BD, y retorna descripción + tags.
+// SIN autenticación (según especificación tarea 10)
+router.post('/analitzar-imatge', async (req, res) => {
     try {
-        const { model, prompt, images, stream } = req.body;
+        const { image } = req.body;
 
-        // Aquí podríamos guardar la petición en la tabla AnalysisRequest
-        // const request = await AnalysisRequest.create({ userId: req.user.id, ... });
+        if (!image) {
+            return res.status(400).json(createResponse('ERROR', 'Cal enviar una imatge en base64'));
+        }
 
-        // Respuesta simulada de la IA
-        return res.json(createResponse('OK', 'Imatges processades correctament', {
-            description: "La imatge mostra un personatge pixelat (Exemple de resposta IA)...",
-            tags: ["pixel", "videojoc", "retro"],
-            processing_time: "2.3s",
-            model_used: model || "qwen2.5vl:7b"
+        const startTime = Date.now();
+
+        // Guardar la petición en la BD
+        const analysisRequest = await AnalysisRequest.create({
+            imageId: 'IMG_' + Date.now(),
+            prompt: 'Descriu aquesta imatge en català. Dona una descripció detallada i una llista de tags.',
+            imageBase64: image
+        });
+
+        // URL de Ollama (configurar también por env var)
+        const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+        const ollamaModel = process.env.OLLAMA_MODEL || 'llava';
+
+        let description = '';
+        let tags = [];
+
+        try {
+            // Llamar a Ollama con la imagen
+            const ollamaResponse = await fetch(`${ollamaUrl}/api/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: ollamaModel,
+                    prompt: 'Descriu aquesta imatge en català. Dona una descripció detallada. Al final, proporciona una llista de tags separats per comes, precedida per "Tags:".',
+                    images: [image],
+                    stream: false
+                })
+            });
+
+            if (!ollamaResponse.ok) {
+                throw new Error(`Ollama ha respost amb status ${ollamaResponse.status}`);
+            }
+
+            const ollamaData = await ollamaResponse.json();
+            const fullResponse = ollamaData.response || '';
+
+            // Extraer descripción y tags de la respuesta
+            const tagIndex = fullResponse.toLowerCase().lastIndexOf('tags:');
+            if (tagIndex !== -1) {
+                description = fullResponse.substring(0, tagIndex).trim();
+                const tagsStr = fullResponse.substring(tagIndex + 5).trim();
+                tags = tagsStr.split(',').map(t => t.trim().replace(/^[#\-•]\s*/, '')).filter(t => t.length > 0);
+            } else {
+                description = fullResponse.trim();
+                // Generar tags automáticos con una segunda llamada
+                const tagsResponse = await fetch(`${ollamaUrl}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: ollamaModel,
+                        prompt: 'Dona exactament 5 tags en català per a aquesta imatge, separats per comes. Només els tags, res més.',
+                        images: [image],
+                        stream: false
+                    })
+                });
+
+                if (tagsResponse.ok) {
+                    const tagsData = await tagsResponse.json();
+                    tags = (tagsData.response || '').split(',').map(t => t.trim()).filter(t => t.length > 0);
+                }
+            }
+
+        } catch (ollamaError) {
+            console.error('Error amb Ollama:', ollamaError.message);
+            // Fallback si Ollama no está disponible
+            description = "No s'ha pogut connectar amb el model d'IA. Descripció no disponible.";
+            tags = ['error', 'sense-model'];
+        }
+
+        const processingTime = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+
+        // Guardar la respuesta en la BD
+        const responseRecord = await Response.create({
+            requestId: analysisRequest.id,
+            description: description,
+            tags: JSON.stringify(tags),
+            model_used: ollamaModel,
+            processing_time: processingTime
+        });
+
+        return res.json(createResponse('OK', 'Imatge processada correctament', {
+            description: description,
+            tags: tags,
+            processing_time: processingTime,
+            model_used: ollamaModel
         }));
 
     } catch (error) {
-        console.error(error);
+        console.error('Error al processar imatge:', error);
         return res.status(500).json(createResponse('ERROR', 'Error al processar imatge'));
     }
 });
@@ -187,10 +263,11 @@ router.post('/analitzar-imatge', authMiddleware, async (req, res) => {
 // Endpoint de prueba que siempre retorna datos mock (SIN autenticación)
 router.post('/analitzar-imatge-test', async (req, res) => {
     try {
-        // No requiere autenticación - para testing de app móvil
         const { image } = req.body;
 
-        // Respuesta simulada siempre igual para testing
+        // Log para verificar que llegan datos
+        console.log(`[TEST] Imatge rebuda: ${image ? image.substring(0, 50) + '...' : 'cap'} (${image ? image.length : 0} chars)`);
+
         return res.json(createResponse('OK', 'Imatge de test processada', {
             description: "Aquesta és una descripció de test. La imatge mostra un objecte de prova per validar la funcionalitat de l'aplicació mòbil.",
             tags: ["test", "prova", "validació", "mock"],
@@ -201,6 +278,66 @@ router.post('/analitzar-imatge-test', async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json(createResponse('ERROR', 'Error al processar imatge de test'));
+    }
+});
+
+// --- Endpoint de Estadísticas de Tags (Desktop) ---
+
+// GET /api/admin/estadistiques/tags
+// Retorna recuento agregado de todos los tags almacenados
+router.get('/admin/estadistiques/tags', authMiddleware, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json(createResponse('ERROR', 'Accés denegat'));
+    }
+
+    try {
+        // Obtener todas las respuestas con tags
+        const responses = await Response.findAll({
+            attributes: ['tags'],
+            where: {
+                tags: { [Op.not]: null }
+            }
+        });
+
+        // Agregar conteo de tags
+        const tagCounts = {};
+        responses.forEach(resp => {
+            try {
+                const tags = JSON.parse(resp.tags);
+                if (Array.isArray(tags)) {
+                    tags.forEach(tag => {
+                        const normalizedTag = tag.toLowerCase().trim();
+                        if (normalizedTag) {
+                            tagCounts[normalizedTag] = (tagCounts[normalizedTag] || 0) + 1;
+                        }
+                    });
+                }
+            } catch (e) {
+                // Si tags no es JSON válido, intentar separar por comas
+                const tags = resp.tags.split(',');
+                tags.forEach(tag => {
+                    const normalizedTag = tag.toLowerCase().trim();
+                    if (normalizedTag) {
+                        tagCounts[normalizedTag] = (tagCounts[normalizedTag] || 0) + 1;
+                    }
+                });
+            }
+        });
+
+        // Convertir a array ordenado por conteo
+        const sortedTags = Object.entries(tagCounts)
+            .map(([tag, count]) => ({ tag, count }))
+            .sort((a, b) => b.count - a.count);
+
+        return res.json(createResponse('OK', 'Estadístiques obtingudes', {
+            totalTags: sortedTags.length,
+            totalAnalysis: responses.length,
+            tags: sortedTags
+        }));
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json(createResponse('ERROR', "Error al obtenir estadístiques"));
     }
 });
 
