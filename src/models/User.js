@@ -13,7 +13,6 @@ const User = sequelize.define('User', {
     // Email único, usado para login de administrador
     email: {
         type: DataTypes.STRING,
-        unique: true,
         allowNull: true // Obligatoria para admins en este sprint
     },
     // Contraseña (solo para admin en este sprint) login
@@ -46,6 +45,13 @@ const User = sequelize.define('User', {
         type: DataTypes.BOOLEAN,
         defaultValue: true
     }
+}, {
+    indexes: [
+        {
+            unique: true,
+            fields: ['email']
+        }
+    ]
 });
 
 module.exports = User;

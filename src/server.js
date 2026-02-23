@@ -18,7 +18,7 @@ app.use('/api', apiRoutes);
 
 // Sincronización con la Base de Datos y arranque del servidor
 // force: false evita que se borren los datos cada vez que iniciamos
-db.sequelize.sync({ alter: true })
+db.sequelize.sync({ alter: false })
     .then(async () => {
         console.log('Base de Datos sincronizada');
 
