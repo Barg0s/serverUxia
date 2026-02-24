@@ -228,6 +228,10 @@ router.post('/analitzar-imatge', async (req, res) => {
                 }
             }
 
+            // Filtrar tags indesitjats (al·lucinacions o missatges d'error repetitius)
+            const unwantedTags = ['error', 'sense-model', 'sin model', 'n/a', 'cap'];
+            tags = tags.filter(t => !unwantedTags.includes(t.toLowerCase()));
+
         } catch (ollamaError) {
             console.error('Error amb Ollama:', ollamaError.message);
             // Fallback si Ollama no está disponible
